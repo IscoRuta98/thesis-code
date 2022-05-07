@@ -14,7 +14,6 @@ masters = pd.read_excel("/home/isco/Documents/Master lists/JPE_master.xlsx")
 pivots = pd.read_excel("/home/isco/Documents/Pivot lists/JPE_pivots.xlsx")
 output = pd.read_csv("/home/isco/Documents/thesis-code/datadump.csv")
 
-
 # Create Dataframe
 """cols2 = ['stable_url', 'authors', 'title', 'abstract', 'content_type', 'issue_url', 'pages', 'no_tables', 'no_eq',
          'no_figures']
@@ -52,7 +51,7 @@ for ind in pivots.index:
 
                 pdf_document = directory + "/" + pdf_file_name
                 print("Checking Article: ", pdf_file_name)
-                pdf = PdfFileReader(pdf_document)
+                pdf = PdfFileReader(pdf_document, strict=False)
                 images = convert_from_path(pdf_document)
 
                 # Set up a counter to keep track.
@@ -60,9 +59,10 @@ for ind in pivots.index:
                 NumOfFigures = 0
                 NumOfEquation = 0
                 start = time.time()
-
-                for i in range(pdf.getNumPages()):
-                    if(i == 0):
+                print("The number of pages in this article is: ", pdf.getNumPages())
+                #print(list(range(pdf.getNumPages())))
+                for i in list(range(pdf.getNumPages())):
+                    if i == 0:
                         continue
                     """
                     For every page in an article, two Deep Learning models are ran.
@@ -74,26 +74,42 @@ for ind in pivots.index:
                     - THe number of equations.
                     - The number of figures.
                     """
+                    print("Processing page: ", i)
+                    Table = []
+                    Figure = []
+                    df2 = []
 
                     layout = model.detect(images[i])
                     EquationLayout = formula_model.detect(images[i])
                     # Export layout results as a dataframe.
                     df = layout.to_dataframe()
                     df2 = EquationLayout.to_dataframe()
+                    #print(df)
+                    #print(df2)
                     # Extract the number of layouts (i.e. rows in the dataframe) that detected a table.
-                    Table = df.loc[df['type'] == 'Table']
-                    Figure = df.loc[df['type'] == 'Figure']
-                    # Equation = df2[df2['type'] == 'Equation']
+                    columnsToAboveDf = df.columns.tolist()
+                    # print(columnsToAboveDf[5])
+                    if df.shape[0] > 0:
+                        Table = df.loc[df[columnsToAboveDf[5]] == 'Table']
+                        # print(Table)
+                        Figure = df.loc[df[columnsToAboveDf[5]] == 'Figure']
+                        # print(Figure)
+                        # Equation = df2[df2['type'] == 'Equation']
 
                     NumOfTables = NumOfTables + len(Table)
                     NumOfFigures = NumOfFigures + len(Figure)
                     NumOfEquation = NumOfEquation + len(df2)
 
+                    print("The numer of Tables in this page is: ", len(Table))
+                    print("The numer of Figures in this page is: ", len(Figure))
+                    print("The numer of Equations in this page is: ", len(df2))
+
                 print("The numer of Tables in this article is: ", NumOfTables)
                 print("The numer of Figures in this article is: ", NumOfFigures)
                 print("The numer of Equations in this article is: ", NumOfEquation)
 
-                temp = {'stable_url': masters['stable_url'][ind2], 'authors': masters['authors'][ind2], 'title': masters['title'][ind2],
+                temp = {'stable_url': masters['stable_url'][ind2], 'authors': masters['authors'][ind2],
+                        'title': masters['title'][ind2],
                         'abstract': masters['abstract'][ind2], 'content_type': masters['content_type'][ind2],
                         'issue_url': masters['issue_url'][ind2], 'pages': masters['pages'][ind2],
                         'no_tables': NumOfTables, 'no_eq': NumOfEquation, 'no_figures': NumOfFigures}
@@ -102,7 +118,8 @@ for ind in pivots.index:
                 output.to_csv('/home/isco/Documents/thesis-code/datadump.csv', index=False)
 
                 end = time.time()
-                print(str(pdf_file_name) + " took " + str(np.round((end - start) / 60,2)) + " minutes to process this article")
+                print(str(pdf_file_name) + " took " + str(
+                    np.round((end - start) / 60, 2)) + " minutes to process this article")
                 print("Next article...")
             # do parsing processing for this paper
     total = total + downloaded
@@ -111,4 +128,4 @@ for ind in pivots.index:
         str(pivots['year'][ind]) + " " + str(pivots['no_docs'][ind]) + " " + str(pivots['issue_url'][ind]) + " " + str(
             downloaded))"""
 print(str(total) + " article processed in this session")
-print(fulllist_s_1940)
+# print(fulllist_s_1940)
