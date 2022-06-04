@@ -10,7 +10,7 @@ import os
 import time
 
 # Read in masters and pivot list
-masters = pd.read_excel("/home/isco/Documents/Master lists/JPE_master.xlsx")
+masters = pd.read_csv("/home/isco/Documents/Master lists/JPE_masterlist.csv")
 pivots = pd.read_excel("/home/isco/Documents/Pivot lists/JPE_pivots.xlsx")
 output = pd.read_csv("/home/isco/Documents/thesis-code/datadump.csv")
 
@@ -20,7 +20,7 @@ output = pd.read_csv("/home/isco/Documents/thesis-code/datadump.csv")
 output = pd.DataFrame(columns=cols2)
 """
 # directory path of the papers
-directory = r'/home/isco/Documents/SamplePapers/'
+directory = r'/home/isco/Documents/SamplePapers'
 
 # Load the deep layout models from the layoutparser API
 model = lp.Detectron2LayoutModel('lp://PubLayNet/mask_rcnn_X_101_32x8d_FPN_3x/config',
@@ -54,13 +54,17 @@ for ind in pivots.index:
                 pdf = PdfFileReader(pdf_document, strict=False)
                 images = convert_from_path(pdf_document)
 
+                equationResDirectory = r'/home/isco/Documents/equation_res/' + masters['stable_url'][ind2].split('/')[
+                    -1]
+                os.mkdir(path=equationResDirectory)
+
                 # Set up a counter to keep track.
                 NumOfTables = 0
                 NumOfFigures = 0
                 NumOfEquation = 0
                 start = time.time()
                 print("The number of pages in this article is: ", pdf.getNumPages())
-                #print(list(range(pdf.getNumPages())))
+                # print(list(range(pdf.getNumPages())))
                 for i in list(range(pdf.getNumPages())):
                     if i == 0:
                         continue
@@ -84,8 +88,8 @@ for ind in pivots.index:
                     # Export layout results as a dataframe.
                     df = layout.to_dataframe()
                     df2 = EquationLayout.to_dataframe()
-                    #print(df)
-                    #print(df2)
+                    # print(df)
+                    # print(df2)
                     # Extract the number of layouts (i.e. rows in the dataframe) that detected a table.
                     columnsToAboveDf = df.columns.tolist()
                     # print(columnsToAboveDf[5])
@@ -95,6 +99,17 @@ for ind in pivots.index:
                         Figure = df.loc[df[columnsToAboveDf[5]] == 'Figure']
                         # print(Figure)
                         # Equation = df2[df2['type'] == 'Equation']
+
+                    # Save images where equations have been detected
+                    if df2.shape[0] > 0:
+                        result = lp.draw_box(images[i], EquationLayout, show_element_type=True, box_width=5)
+                        plt.imshow(result)
+                        figure = plt.gcf()  # get current figure
+                        figure.set_size_inches(19.20, 9.83)
+                        # when saving, specify the DPI
+                        fileDirectory = equationResDirectory + "/" + "Page_" + str(i + 1) + ".png"
+                        plt.savefig(fileDirectory, format="png",
+                                    dpi=100)
 
                     NumOfTables = NumOfTables + len(Table)
                     NumOfFigures = NumOfFigures + len(Figure)
